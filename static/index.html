@@ -33,13 +33,16 @@ var H = canvas.height = window.innerHeight-50;
 
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
-    var xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();  //object used to exchange data with server behind the scenes without reloading the page.
     xhr.onreadystatechange = function () {
         if (xhr.readyState==4) {
+            //Ajax call completed: request sent, server finished returning response and browser finished downloading the response content
             try {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
+                    var data = JSON.parse(xhr.responseText);
                     //XXX: Pass the data to the callback!
+                    callback(data);
                 }
             } 
             catch(e) {
@@ -48,13 +51,30 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
         }
     };
     //XXX: POST to a URL
+    //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+    //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
+    xhr.open("POST", url, true);
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/overrideMimeType
+    xhr.overrideMimeType("application/json")
+    //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
+    xhr.setRequestHeader("Accept", "application/json")
+    //send the request
+    xhr.send(JSON.stringify(objects));
 }
 
 
 world = {};
 
+function randomizeRbgColor(){
+    // https://stackoverflow.com/a/51628190
+    var num = Math.round(0xffffff * Math.random());
+	var r = num >> 16;
+	var g = num >> 8 & 255;
+	var b = num & 255;
+    return ["rgb(",r,",",g,",",b,")"].join("");
+}
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
@@ -63,10 +83,15 @@ function drawCircle(context,entity) {
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
+        
         fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
+
+        var my_gradient = context.createLinearGradient(0, 0, 0, 0);
+        my_gradient.addColorStop(0, entity["colour"]);
+        my_gradient.addColorStop(1, entity["colour"]);
+        strokeStyle = my_gradient;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        fill();                                
     }
 }
 
@@ -138,7 +163,8 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    url = '/entity/' + entity
+    sendJSONXMLHTTPRequest(url, data, () => {});
 }
 
 var counter = 0;
@@ -247,15 +273,15 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':randomizeRbgColor()});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':randomizeRbgColor()});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    addEntityWithoutName({'x':x,'y':y,'colour':'white',
                           'radius':10});
 });
 
@@ -263,6 +289,11 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
     drawFrame();
+    sendJSONXMLHTTPRequest('/world', null, function(data){
+        world = data; // save request data as world
+        drawNextFrame();
+    })
+    
 }
 
 // 30 frames per second

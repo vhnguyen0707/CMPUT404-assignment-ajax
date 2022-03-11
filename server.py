@@ -21,8 +21,10 @@
 #     pip install flask
 
 
+from sre_parse import State
+from telnetlib import STATUS
 import flask
-from flask import Flask, request, redirect, jsonify
+from flask import Flask, request, redirect, Response
 import json
 app = Flask(__name__)
 app.debug = True
@@ -81,23 +83,23 @@ def update(entity):
     '''update the entities via this interface'''
     data = flask_post_json() 
     myWorld.set(entity, data)
-    return jsonify(data)
+    return Response(json.dumps(data), status=200)
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    return jsonify(myWorld.world())
+    return Response(json.dumps(myWorld.world()), status=200)
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
     '''This is the GET version of the entity interface, return a representation of the entity'''
-    return jsonify(myWorld.get(entity))
+    return Response(json.dumps(myWorld.get(entity)), status=200)
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
     myWorld.clear()
-    return jsonify(dict())
+    return Response(json.dumps(dict()), status=200)
     
 if __name__ == "__main__":
     app.run()

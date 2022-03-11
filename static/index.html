@@ -53,7 +53,13 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     //XXX: POST to a URL
     //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
     //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/open
-    xhr.open("POST", url, true);
+    if (url == '/world'){
+        // not to abuse POST when polling /world
+        xhr.open("GET", url, true); 
+    } else {
+        xhr.open("POST", url, true);
+    }
+   
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
     //https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/overrideMimeType
